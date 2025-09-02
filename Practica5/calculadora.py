@@ -22,9 +22,6 @@ center_y = int(screen_height/2 - window_height/2)
 
 root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
-# Cambiar el icono de la ventana
-root.iconbitmap('./parrot.ico')
-
 # Bloquear cambio de tamaño
 root.resizable(False,False)
 
@@ -73,10 +70,7 @@ def eqClicked():
     resultado = eval(num.get())
     message.config(text= str(resultado))
 
-
 btnSum.bind('<ButtonPress>', sumClicked)
-
-
 
 # Mantiene la ventana mostrandose
 root.mainloop()
