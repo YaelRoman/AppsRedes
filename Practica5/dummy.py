@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 from ctypes import windll
+from tkinter import PhotoImage
 
 #  Arregla UI borrosa en windows
 windll.shcore.SetProcessDpiAwareness(1)
@@ -23,7 +24,8 @@ center_y = int(screen_height/2 - window_height/2)
 root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
 # Cambiar el icono de la ventana
-root.iconbitmap('./parrot.ico')
+icon = PhotoImage(file='ditto.png')
+root.iconphoto(True, icon)
 
 # Bloquear cambio de tamaño
 root.resizable(False,False)

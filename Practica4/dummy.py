@@ -30,7 +30,7 @@ b = '073457'
 print (re.findall('[0-9]', a),re.findall('[0-9]', b)) 
 
 telefono = '5534261755 '
-print(re.findall('^\d{10}$', telefono))
+print(re.findall(r'^\d{10}$', telefono))
 
 # Regex contraseña 1 caracter especial, mayusculas, minusculas 
 # y 8 caracteres
