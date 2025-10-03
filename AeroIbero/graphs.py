@@ -22,7 +22,7 @@ class PathHandler:
 
 class DirectedWeightedGraph:
     def __init__(self):
-        self.edges = {}  # {source: {target: {attr_dict}}}
+        self.edges = {}
 
     def add_edge(self, source, target, **attrs):
         if source not in self.edges:
@@ -79,6 +79,17 @@ def csvToDBTable(csv_path: PathHandler, db_path: PathHandler, tableName: str):
     # Guardar en base de datos remplazando la tabla si ya existe
     df.to_sql(tableName, engine, if_exists='replace')
 
+def graph_matrix_df(graph, nodes):
+    matrix = np.zeros((len(nodes), len(nodes)))
+    node_idx = {node: idx for idx, node in enumerate(nodes)}
+    for src in nodes:
+        for dst in nodes:
+            edge = graph.get_edge_data(src, dst)
+            matrix[node_idx[src], node_idx[dst]] = edge['weight'] if edge else 0
+    return pd.DataFrame(matrix, index=nodes, columns=nodes)
+
+
+
 ciudadesCsvPath = PathHandler(['Raw'], 'Ciudades.csv')
 resumenCsvPath = PathHandler(['Raw'], 'resumen.csv')
 rutasCsvPath = PathHandler(['Raw'], 'rutas.csv')
@@ -88,33 +99,8 @@ csvToDBTable(ciudadesCsvPath, aeroIberoDBPath, 'Ciudades')
 csvToDBTable(resumenCsvPath, aeroIberoDBPath, 'Resumen')
 csvToDBTable(rutasCsvPath, aeroIberoDBPath, 'Rutas')
 
-# # Verificar si los datos se almacenaron correctamente leyendo la tabla desde la base de datos
-# with create_engine(f"sqlite:///{aeroIberoDBPath.absPath}").connect() as conn:
-#     pd.set_option('display.max_rows', None)
-#     pd.set_option('display.max_columns', None)
-#     pd.set_option('display.width', None)
-#     pd.set_option('display.max_colwidth', None)
-#     ciudades = pd.read_sql_table('Ciudades', conn)
-#     resumen = pd.read_sql_table('Resumen', conn)
-#     rutas = pd.read_sql_table('Rutas', conn)
-#     print(ciudades)
-#     print(resumen)
-#     print(rutas)
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', None)
-pd.set_option('display.max_colwidth', None)
 resumen_df = load_resumen_df(aeroIberoDBPath)
 graphs = build_weighted_graphs_from_resumen(resumen_df)
-
-def graph_matrix_df(graph, nodes):
-    matrix = np.zeros((len(nodes), len(nodes)))
-    node_idx = {node: idx for idx, node in enumerate(nodes)}
-    for src in nodes:
-        for dst in nodes:
-            edge = graph.get_edge_data(src, dst)
-            matrix[node_idx[src], node_idx[dst]] = edge['weight'] if edge else 0
-    return pd.DataFrame(matrix, index=nodes, columns=nodes)
 
 nodes = list(dict.fromkeys(
     [r['Origen'].strip() for _, r in resumen_df.iterrows()] +

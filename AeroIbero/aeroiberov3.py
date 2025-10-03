@@ -1,11 +1,18 @@
 from tkinter import *
+from tkinter import ttk, StringVar
+import graphs
+import compRoutes
 import random # para fines de pruebas; hay que quitarlo al final
 
 # --- Dark Theme Setup ---
 def set_dark_theme(widget):
+    import tkinter.ttk as ttk_mod
     bg = "#222"
     fg = "#eee"
     for w in widget.winfo_children():
+        # Skip ttk widgets (they don't support bg/fg config)
+        if isinstance(w, (ttk_mod.Entry, ttk_mod.Button, ttk_mod.Combobox, ttk_mod.Label, ttk_mod.Frame)):
+            continue
         if isinstance(w, (Frame, LabelFrame)):
             w.config(bg=bg)
             set_dark_theme(w)
@@ -22,10 +29,31 @@ def set_dark_theme(widget):
             set_dark_theme(w)
         # Add more widget types as needed
 
-# After creating all widgets but before root.mainloop():
 def apply_dark_theme():
     root.config(bg="#222")
     set_dark_theme(root)
+
+    # Basic ttk dark styling so Comboboxes look consistent
+    try:
+        style = ttk.Style()
+        # Use a theme that honors custom colors on most platforms
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+        style.configure(
+            "TCombobox",
+            fieldbackground="#333",
+            background="#333",
+            foreground="#eee"
+        )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", "#333")],
+            foreground=[("readonly", "#eee")]
+        )
+    except Exception:
+        pass
 
 
 # guardar
@@ -34,8 +62,8 @@ def guardarDatos(): # función para guardar los datos del cliente que reserva
     registro_button.config(state="disabled")  # bloquea el botón después de usarlo
     
     # se obtienen los datos de los entries de la ventana principal
-    origen = origen_entry.get()
-    destino = destino_entry.get()
+    origen = origen_var.get()
+    destino = destino_var.get()
     ruta = ruta_var.get()
     nombre = nombre_entry.get()
     apellidoP = apellidoP_entry.get()
@@ -47,7 +75,12 @@ def guardarDatos(): # función para guardar los datos del cliente que reserva
     extras = extras_entry.get()
     
     # se abre una ventana adicional para el registro de los acompañantes
-    if extras >= '1':
+    try:
+        extras_num = int(extras)
+    except Exception:
+        extras_num = 0
+    
+    if extras_num >= '1':
         registroExtras()
     
     num_id = 'id'
@@ -218,26 +251,52 @@ def guardarDatosExtra(id_var,): # hay que eliminar esta función al final; solo 
     nuevo_id = random.randint(1000,9999)
     id_var.set(f'ID Cliente: {nuevo_id}')  # actualiza el label
 
-def checarRutas():
-    # obtiene datos de origen y destinopara identificar rutas de menor costo
-    origen = origen_entry.get()
-    destino = destino_entry.get()
+def rutaToLabel(ruta):
+    label = ""
+    numCiudades = len(ruta)
+    for i in range(numCiudades-1):
+        label = f"{label}{ruta[i]} - {ruta[i+1]}\n"
+    return label
 
-    # insert dijkstra here lol
-    res1 = 'Dijkstra Precio'
-    res2 = 'Dijkstra Distancia'
-    res3 = 'Dijkstra Tiempo'
+def horasToHorasMinutos(horas_dec):
+    horas = int(horas_dec)
+    minutos = int(round((horas_dec - horas) * 60))
+    return horas, minutos
+
+def checarRutas(origen: str, destino: str):
+    if destino != 'Selecciona destino' and origen != 'Selecciona origen' and origen != "" and destino != "":
+        print(origen, destino)
+        [(rutaCosto, costo),
+        (rutaDistancia, distancia),
+        (rutaTiempo, tiempo)       ] = compRoutes.bestRoutes(origen, destino)
+        
+        #Precio
+        resCosto = rutaToLabel(rutaCosto)
+        resCosto = f"{resCosto}\nTotal: ${costo}\n"
+        # Distancia
+        resDistancia = rutaToLabel(rutaDistancia)
+        resDistancia = f"{resDistancia}\nTotal: {distancia} km\n"
+
+        #Tiempo
+        resTiempo = rutaToLabel(rutaTiempo)
+        horas, minutos = horasToHorasMinutos(tiempo)
+        resTiempo = f"{resTiempo}\nTotal: {horas} h {minutos} m\n"
+    else:
+        resCosto = resDistancia = resTiempo = '-'
     
     # actualiza los labels según las rutas encontradas
-    reMinPrecio_label.config(text=f'{res1}')
-    reMinDistancia_label.config(text=f'{res2}')
-    reMinTiempo_label.config(text=f'{res3}')
+    reMinPrecio_label.config(text=f'{resCosto}')
+    reMinDistancia_label.config(text=f'{resDistancia}')
+    reMinTiempo_label.config(text=f'{resTiempo}')
     
-    
+
 # ventana principal
 root = Tk()
 root.resizable(False, False)
 root.title('Formulario de Reservación ✈️')
+
+def on_origen_destino_change(*args):
+    checarRutas(origen_var.get(), destino_var.get())
 
 # frame vuelo
 frame_vuelo = Frame(root, padx=10, pady=10, relief=GROOVE, borderwidth=2)
@@ -246,25 +305,72 @@ frame_vuelo.pack(padx=10, pady=10, fill='x')
 datosVuelo_label = Label(frame_vuelo, text='Datos Vuelo', font=('Arial', 12, 'bold'))
 datosVuelo_label.grid(row=0, column=0, columnspan=2, pady=(0, 10))
 
+# Let column 1 stretch so the dropdowns expand
+frame_vuelo.grid_columnconfigure(1, weight=1)
+
+# ---- Source list for the dropdowns ----
+# If your graphs module exposes a nodes list or getter, use it:
+city_list = getattr(graphs, "nodes", [])
+if not city_list and hasattr(graphs, "get_nodes"):
+    try:
+        city_list = graphs.get_nodes()
+    except Exception:
+        city_list = []
+# Fallback (replace with your real list if needed)
+# city_list = ["Aeropuerto", "Santa Fe", "Polanco", "Condesa"]
+
+# Origen
 origen_label = Label(frame_vuelo, text='Origen:')
 origen_label.grid(row=1, column=0, sticky='e', padx=5, pady=2)
-origen_entry = Entry(frame_vuelo)
-origen_entry.grid(row=1, column=1, padx=5, pady=2)
 
+origen_var = StringVar()
+origen_combo = ttk.Combobox(frame_vuelo, textvariable=origen_var, values=city_list, state="readonly")
+origen_combo.grid(row=1, column=1, padx=5, pady=2, sticky='we')
+origen_combo.set("Selecciona origen")  # optional placeholder
+
+# Destino
 destino_label = Label(frame_vuelo, text='Destino:')
 destino_label.grid(row=2, column=0, sticky='e', padx=5, pady=2)
-destino_entry = Entry(frame_vuelo)
-destino_entry.grid(row=2, column=1, padx=5, pady=2)
 
+destino_var = StringVar()
+destino_combo = ttk.Combobox(frame_vuelo, textvariable=destino_var, values=city_list, state="readonly")
+destino_combo.grid(row=2, column=1, padx=5, pady=2, sticky='we')
+destino_combo.set("Selecciona destino")  # optional placeholder
+
+# Fecha (unchanged)
 fecha_label = Label(frame_vuelo, text='Fecha:')
 fecha_label.grid(row=3, column=0, sticky='e', padx=5, pady=2)
 fecha_entry = Entry(frame_vuelo)
 fecha_entry.grid(row=3, column=1, padx=5, pady=2)
 
+# Events: react when user picks in the dropdowns
+def _trigger_update(*_):
+    on_origen_destino_change()
+
+origen_combo.bind("<<ComboboxSelected>>", lambda e: _trigger_update())
+destino_combo.bind("<<ComboboxSelected>>", lambda e: _trigger_update())
+
+# (Optional) keep destino list synced to avoid picking same as origen
+def _on_origen_selected(e=None):
+    sel = origen_var.get()
+    new_vals = [c for c in city_list if c != sel]
+    destino_combo["values"] = new_vals
+    if destino_var.get() == sel:
+        destino_var.set("")
+    _trigger_update()
+
+origen_combo.bind("<<ComboboxSelected>>", _on_origen_selected)
+
+# Also fire when changed programmatically (optional)
+origen_var.trace_add("write", lambda *_: _trigger_update())
+destino_var.trace_add("write", lambda *_: _trigger_update())
+
 
 # frame rutas
 frame_rutas = Frame(root, padx=10, pady=10, relief=GROOVE, borderwidth=2)
-frame_rutas.pack(padx=10, pady=10, fill='x')
+frame_rutas.pack(padx=10, pady=10, fill='x', expand=True)
+frame_rutas.grid_columnconfigure(0, weight=1)
+frame_rutas.grid_columnconfigure(1, weight=0)
 
 rutas_label = Label(frame_rutas, text='Rutas', font=('Arial', 12, 'bold'))
 rutas_label.grid(row=0, column=0, columnspan=3, pady=(0, 10))
@@ -272,31 +378,25 @@ rutas_label.grid(row=0, column=0, columnspan=3, pady=(0, 10))
 ruta_var = IntVar(value=0)  # guarda cuál está seleccionado
 
 minPrecio_label = Label(frame_rutas, text='Menor Precio:')
-minPrecio_label.grid(row=1, column=0, sticky='e', padx=5, pady=2)
-reMinPrecio_label = Label(frame_rutas, text='Ruta de menor precio')
-reMinPrecio_label.grid(row=1, column=1, padx=5, pady=2)
+minPrecio_label.grid(row=1, column=0, sticky='w', padx=5, pady=2)
+reMinPrecio_label = Label(frame_rutas, text='-')
+reMinPrecio_label.grid(row=2, column=0, sticky='w', padx=5, pady=2)
 minPrecio_radio = Radiobutton(frame_rutas, variable=ruta_var, value=1)
-minPrecio_radio.grid(row=1, column=2, padx=5)
+minPrecio_radio.grid(row=1, column=1, sticky='w', padx=5)
 
 minDistancia_label = Label(frame_rutas, text='Menor Distancia:')
-minDistancia_label.grid(row=2, column=0, sticky='e', padx=5, pady=2)
-reMinDistancia_label = Label(frame_rutas, text='Ruta de menor distancia')
-reMinDistancia_label.grid(row=2, column=1, padx=5, pady=2)
+minDistancia_label.grid(row=3, column=0, sticky='w', padx=5, pady=2)
+reMinDistancia_label = Label(frame_rutas, text='-')
+reMinDistancia_label.grid(row=4, column=0, sticky='w', padx=5, pady=2)
 minDistancia_radio = Radiobutton(frame_rutas, variable=ruta_var, value=2)
-minDistancia_radio.grid(row=2, column=2, padx=5)
+minDistancia_radio.grid(row=3, column=1, sticky='w',padx=5)
 
 minTiempo_label = Label(frame_rutas, text='Menor Tiempo:')
-minTiempo_label.grid(row=3, column=0, sticky='e', padx=5, pady=2)
-reMinTiempo_label = Label(frame_rutas, text='Ruta de menor tiempo')
-reMinTiempo_label.grid(row=3, column=1, padx=5, pady=2)
+minTiempo_label.grid(row=5, column=0, sticky='w', padx=5, pady=2)
+reMinTiempo_label = Label(frame_rutas, text='-')
+reMinTiempo_label.grid(row=6, column=0, sticky='w', padx=5, pady=2)
 minTiempo_radio = Radiobutton(frame_rutas, variable=ruta_var, value=3)
-minTiempo_radio.grid(row=3, column=2, padx=5)
-
-
-# botón rutas
-ruta_button = Button(root, text='Checar Rutas', font=('Arial', 11, 'bold'), bg='#4CAF50', fg='gray', command=checarRutas)
-ruta_button.pack(pady=15)
-
+minTiempo_radio.grid(row=5, column=1, sticky='w',padx=5)
 
 # frame usuario
 frame_usuario = Frame(root, padx=10, pady=10, relief=GROOVE, borderwidth=2)
@@ -345,7 +445,6 @@ extras_label.grid(row=8, column=0, sticky='e', padx=5, pady=2)
 extras_entry = Entry(frame_usuario)
 extras_entry.grid(row=8, column=1, padx=5, pady=2)
 
-    
 # botón registro
 registro_button = Button(root, text='Registro', font=('Arial', 11, 'bold'), bg='#4CAF50', fg='gray', command=guardarDatos)
 registro_button.pack(pady=15)

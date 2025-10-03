@@ -129,41 +129,25 @@ class Graph:
         path.reverse()
         return path, total
 
-    
-costoCsvPath = PathHandler(['Graphs'], 'matriz_costo.csv')
-distanciaCsvPath = PathHandler(['Graphs'], 'matriz_distancia.csv')
-tiempoCsvPath = PathHandler(['Graphs'], 'matriz_tiempo.csv')
+def bestRoutes(origin, dest):
+    costoCsvPath = PathHandler(['Graphs'], 'matriz_costo.csv')
+    distanciaCsvPath = PathHandler(['Graphs'], 'matriz_distancia.csv')
+    tiempoCsvPath = PathHandler(['Graphs'], 'matriz_tiempo.csv')
 
-graphCosto = Graph()
-graphCosto.load_from_csv(costoCsvPath)
+    graphCosto = Graph()
+    graphCosto.load_from_csv(costoCsvPath)
 
-graphDistancia = Graph()
-graphDistancia.load_from_csv(distanciaCsvPath)
+    graphDistancia = Graph()
+    graphDistancia.load_from_csv(distanciaCsvPath)
 
-graphTiempo = Graph()
-graphTiempo.load_from_csv(tiempoCsvPath)
+    graphTiempo = Graph()
+    graphTiempo.load_from_csv(tiempoCsvPath)
 
-origin = "Reino del Bosque"   # replace with a node from your CSV
-dest   = "Isengard"   # replace with a node from your CSV
-
-path, cost = graphCosto.shortest_path(origin, dest)
-if path:
-    print("Route:", " -> ".join(path))
-    print("Total cost:", cost)
-else:
-    print(f"No route from {origin} to {dest}")
-
-path, distance = graphDistancia.shortest_path(origin, dest)
-if path:
-    print("Route:", " -> ".join(path))
-    print("Total distance:", distance)
-else:
-    print(f"No route from {origin} to {dest}")
-
-path, time = graphTiempo.shortest_path(origin, dest)
-if path:
-    print("Route:", " -> ".join(path))
-    print("Total time:", time)
-else:
-    print(f"No route from {origin} to {dest}")
-
+    results = []
+    path_costo, cost = graphCosto.shortest_path(origin, dest)
+    results.append((path_costo, cost))
+    path_distancia, distance = graphDistancia.shortest_path(origin, dest)
+    results.append((path_distancia, distance))
+    path_tiempo, time = graphTiempo.shortest_path(origin, dest)
+    results.append((path_tiempo, time))
+    return results
