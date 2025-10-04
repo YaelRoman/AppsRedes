@@ -66,17 +66,13 @@ def load_resumen_df(db_path: PathHandler):
         resumen_df.columns = [col.strip() for col in resumen_df.columns]
     return resumen_df
 
-# Ejemplo de uso:
-# resumen_df = load_resumen_df(aeroIberoDBPath)
-# graphs = build_weighted_graphs_from_resumen(resumen_df)
-# graphs['Distancia'], graphs['Tiempo'], graphs['Costo']
-
 def csvToDBTable(csv_path: PathHandler, db_path: PathHandler, tableName: str):
     # Cargar del CSv utilizando Header como columnas
     header = pd.read_csv(csv_path.absPath, nrows=0).columns.tolist()
     engine = create_engine(f"sqlite:///{db_path.absPath}")
     df = pd.read_csv(csv_path.absPath, usecols=header)
     # Guardar en base de datos remplazando la tabla si ya existe
+    df.columns = [c.strip() for c in df.columns] 
     df.to_sql(tableName, engine, if_exists='replace')
 
 def graph_matrix_df(graph, nodes):
