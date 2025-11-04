@@ -1,0 +1,42 @@
+{# Template for listing movies #}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de películas</title>
+    <link rel="stylesheet" href="{% static 'movies/style.css' %}" />
+</head>
+<body>
+    <h1>Películas almacenadas</h1>
+    {% if movies %}
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Director</th>
+                <th>Clasificación</th>
+                <th>Año</th>
+                <th>Duración (min)</th>
+                <th>Género</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movie in movies %}
+            <tr>
+                <td>{{ movie.title }}</td>
+                <td>{{ movie.director }}</td>
+                <td>{{ movie.rating }}</td>
+                <td>{{ movie.release_year }}</td>
+                <td>{{ movie.duration_minutes }}</td>
+                <td>{{ movie.get_genre_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay películas en la base de datos.</p>
+    {% endif %}
+</body>
+</html>
