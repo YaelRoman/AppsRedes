@@ -1,0 +1,1 @@
+"""Paquete principal para el simulador de ataques de contraseñas."""

@@ -1,0 +1,1 @@
+"""Paquete de ataques que contiene diversas estrategias de cracking."""

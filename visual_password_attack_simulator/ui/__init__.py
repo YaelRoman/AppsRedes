@@ -1,0 +1,1 @@
+"""Paquete de componentes de interfaz gráfica para el simulador."""
